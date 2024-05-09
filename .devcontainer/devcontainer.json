@@ -1,6 +1,9 @@
 {
-    "image": "node:22.1.0-bookworm-slim",
     "name": "nextjs-dashboard",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "."
+    },
     "features": {
         "ghcr.io/devcontainers/features/git:1": {}
     }
