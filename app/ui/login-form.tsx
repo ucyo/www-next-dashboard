@@ -10,7 +10,7 @@ import { ArrowRightIcon } from '@heroicons/react/20/solid';
 import { Button } from './button';
 import { useFormState } from 'react-dom';
 import { authenticate } from '../lib/actions';
-
+import Link from 'next/link';
 
 export default function LoginForm() {
   const [errorMessage, dispatch] = useFormState(authenticate, undefined);
@@ -63,18 +63,17 @@ export default function LoginForm() {
           </div>
         </div>
         <LoginButton />
-        <div
+        <div className="flex mb-3 text-blue-500 py-3 m-0">
+          <p><Link href='/registration'> or register here</Link></p>
+        </div>
+        {errorMessage ? <div
           className="flex h-8 items-end space-x-1"
           aria-live="polite"
           aria-atomic="true"
         >
-          {errorMessage && (
-            <>
-              <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
-              <p className="text-sm text-red-500">{errorMessage}</p>
-            </>
-          )}
-        </div>
+          <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
+          <p className="text-sm text-red-500">{errorMessage}</p>
+        </div> : ''}
       </div>
     </form>
   );

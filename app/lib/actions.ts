@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
+import bcrypt from 'bcrypt';
 
 const FormSchema = z.object({
     id: z.string(),
@@ -18,6 +19,14 @@ const FormSchema = z.object({
     date: z.string(),
 });
 
+const UserSchema = z.object({
+    id: z.string(),
+    username: z.string().min(3, { message: 'Username must be at least 3 characters long.' }),
+    email: z.string().email({ message: 'Please provide a valid email address.' }),
+    password: z.string().min(6, { message: 'Password must be at least 4 characters long.' }),
+    repeated_password: z.string().min(6, { message: 'Password must be the same as password.' })
+})
+
 export type TempState = {
     errors?: {
         customerId?: string[];
@@ -27,8 +36,20 @@ export type TempState = {
     message?: string | null;
 };
 
+export type UserTempState = {
+    errors?: {
+        username?: string[];
+        password?: string[];
+        email?: string[];
+    };
+    message?: string | null;
+};
+
+
+
 const CreateInvoice = FormSchema.omit({ id: true, date: true });
 const UpdateInvoice = FormSchema.omit({ id: true, date: true });
+const NewUser = UserSchema.omit({ id: true });
 
 export async function createInvoice(prevState: TempState, formData: FormData) {
     //Validate form fields using Zod
@@ -123,4 +144,42 @@ export async function authenticate(
         }
         throw error;
     }
+}
+
+
+export async function register(prevState: UserTempState, formData: FormData) {
+    //Validate form fields using Zod
+    const validatedFields = NewUser.safeParse({
+        username: formData.get('username'),
+        email: formData.get('email'),
+        password: formData.get('password'),
+        repeated_password: formData.get('repeated_password'),
+    })
+    if (!validatedFields.success) {
+        console.log(validatedFields.error);
+        return {
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Missing Fields. Failed to create new user.',
+        }
+    }
+    const { username, email, password, repeated_password } = validatedFields.data;
+    const hashed_password = await bcrypt.hash(password, 10);
+    const matchPassword = await bcrypt.compare(repeated_password, hashed_password);
+    if (!matchPassword) {
+        return {
+            message: 'Passwords do not match!'
+        }
+    }
+
+    try {
+        await sql`
+        INSERT INTO users (name, email, password)
+        VALUES (${username}, ${email}, ${hashed_password})
+        `;
+    } catch (error) {
+        return {
+            message: "Database Error: Failed to create invoice.",
+        };
+    }
+    redirect('/login')
 }
